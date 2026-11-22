@@ -1,4 +1,4 @@
--- PZ Horde Director: lightweight virtual squads that seed vanilla zombie swarms.
+-- PZ Horde Director: virtual horde squads with search, infection and focus states.
 local S = require "PZHordeDirector/Settings"
 
 local KEY = "PZHordeDirector"
@@ -7,30 +7,30 @@ local lastTick = 0
 
 local function now() return getTimestampMs() end
 local function rnd(n) return ZombRand(n) end
-
-local function player()
-    return getSpecificPlayer(0)
-end
+local function player() return getSpecificPlayer(0) end
 
 local function store()
     local p = player()
     if not p then return nil end
     local md = p:getModData()
-    if not md[KEY] then md[KEY] = { squads = {} } end
-    return md[KEY]
+    if not md[KEY] then md[KEY] = { squads = {}, infected = {}, focusNpc = nil, attack = false } end
+    local state = md[KEY]
+    state.squads = state.squads or {}
+    state.infected = state.infected or {}
+    return state
 end
 
 local function newSquad(i, p)
     return {
-        id = i, x = p:getX() + rnd(80) - 40, y = p:getY() + rnd(80) - 40,
-        z = 0, size = 4, spawned = 0, cooldown = 0, state = "roam",
-        targetX = p:getX(), targetY = p:getY(),
+        id = i, x = p:getX() + rnd(200) - 100, y = p:getY() + rnd(200) - 100,
+        z = 0, size = 2, spawned = 0, cooldown = 0, mode = "roam",
+        roamX = nil, roamY = nil, roamUntil = 0,
     }
 end
 
 local function edgePoint(p)
     local side = rnd(4)
-    local d = 180 + rnd(80)
+    local d = 220 + rnd(120)
     if side == 0 then return p:getX() + d, p:getY() end
     if side == 1 then return p:getX() - d, p:getY() end
     if side == 2 then return p:getX(), p:getY() + d end
@@ -52,7 +52,7 @@ local function markNear(x, y, group)
 end
 
 local function spawnAt(x, y, count, group)
-    if not x or not y then return 0 end
+    if not x or not y or count <= 0 then return 0 end
     local ok = pcall(function()
         getWorld():CreateSwarm(math.floor(x), math.floor(y), 1, 1, count)
     end)
@@ -72,49 +72,10 @@ local function alive(group)
             n = n + 1
             if S.crawl() and rnd(100) < 12 then pcall(function() z:setCrawler(true) end) end
             if S.climbFences() then pcall(function() z:setCanWalk(true) end) end
-            if S.climbRopes() then pcall(function() z:setCanCrawlUnderVehicle(true) end) end
         end
     end
     return n
 end
-
-local function targetFor(s, p, focus)
-    if focus then
-        local dead = false
-        pcall(function() dead = focus:isDead() end)
-        if not dead then
-            s.targetX, s.targetY = focus:getX(), focus:getY()
-            s.target = focus
-            return
-        end
-    end
-    if S.targetNPCs() then
-        local survivors = getCell():getSurvivorList()
-        if survivors then
-            local best, bestD
-            for i = 0, survivors:size() - 1 do
-                local npc = survivors:get(i)
-                local dead = false
-                pcall(function() dead = npc:isDead() end)
-                if not dead then
-                    local dx, dy = npc:getX() - p:getX(), npc:getY() - p:getY()
-                    local d = dx * dx + dy * dy
-                    if not bestD or d < bestD then best, bestD = npc, d end
-                end
-            end
-            if best then
-                s.targetX, s.targetY = best:getX(), best:getY()
-                s.target = best
-                return
-            end
-        end
-    end
-    if S.targetPlayers() then
-        s.targetX, s.targetY = p:getX(), p:getY()
-        s.target = p
-    end
-end
-
 
 local function roadAt(x, y, z)
     local square = getCell():getGridSquare(math.floor(x), math.floor(y), math.floor(z or 0))
@@ -132,12 +93,12 @@ local function roadAt(x, y, z)
 end
 
 local function stepToward(s, tx, ty)
-    for step = 1, 2 do
+    if not tx or not ty then return end
+    for _ = 1, 2 do
         local dx, dy = tx - s.x, ty - s.y
         local distance = math.sqrt(dx * dx + dy * dy)
         if distance <= 1 then return end
         local nx, ny = s.x + dx / distance, s.y + dy / distance
-        -- Prefer an adjacent road tile; the horde should use streets, not cut through fields.
         local bestX, bestY, bestD = nil, nil, nil
         for ox = -1, 1 do
             for oy = -1, 1 do
@@ -151,11 +112,89 @@ local function stepToward(s, tx, ty)
                 end
             end
         end
-        if bestX then
-            s.x, s.y = bestX, bestY
-        else
-            s.x, s.y = nx, ny
+        if bestX then s.x, s.y = bestX, bestY else s.x, s.y = nx, ny end
+    end
+end
+
+local function dist2(s, o)
+    local dx, dy = s.x - o:getX(), s.y - o:getY()
+    return dx * dx + dy * dy
+end
+
+local function nearestNpc(s)
+    if not S.targetNPCs() then return nil end
+    local survivors = getCell():getSurvivorList()
+    if not survivors then return nil end
+    local best, bestD = nil, nil
+    local vision = S.visionRadius() * S.visionRadius()
+    for i = 0, survivors:size() - 1 do
+        local npc = survivors:get(i)
+        local dead = false
+        pcall(function() dead = npc:isDead() end)
+        if not dead then
+            local d = dist2(s, npc)
+            if d <= vision and (not bestD or d < bestD) then best, bestD = npc, d end
         end
+    end
+    return best
+end
+
+local function buildingAt(x, y, z)
+    local square = getCell():getGridSquare(math.floor(x), math.floor(y), math.floor(z or 0))
+    if not square then return nil end
+    local building = nil
+    pcall(function() building = square:getBuilding() end)
+    return building
+end
+
+local function buildingKey(building, x, y)
+    local key = nil
+    pcall(function() key = building:getID() end)
+    if key == nil then key = string.format('%d:%d', math.floor(x / 10), math.floor(y / 10)) end
+    return tostring(key)
+end
+
+local function infect(state, s, x, y, count)
+    local building = buildingAt(x, y, s.z)
+    if not building then return false end
+    local key = buildingKey(building, x, y)
+    local first = not state.infected[key]
+    state.infected[key] = { x = x, y = y }
+    spawnAt(x, y, count or 1, s.id)
+    return first
+end
+
+local function infectNearby(state, s, radius, count)
+    for r = 0, radius do
+        for ox = -r, r do
+            for oy = -r, r do
+                if math.abs(ox) == r or math.abs(oy) == r then
+                    local building = buildingAt(s.x + ox, s.y + oy, s.z)
+                    if building then
+                        return infect(state, s, s.x + ox, s.y + oy, count)
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function nearbyInfected(state, p, radius)
+    local n, r2 = 0, radius * radius
+    for _, point in pairs(state.infected) do
+        local dx, dy = point.x - p:getX(), point.y - p:getY()
+        if dx * dx + dy * dy <= r2 then n = n + 1 end
+    end
+    return n
+end
+
+local function chooseRoam(s, p)
+    if not s.roamX or now() >= (s.roamUntil or 0) then
+        local r = S.roamRadius()
+        s.roamX = p:getX() + rnd(r * 2) - r
+        s.roamY = p:getY() + rnd(r * 2) - r
+        s.roamUntil = now() + 25000 + rnd(35000)
     end
 end
 
@@ -169,18 +208,25 @@ local function tick()
     while #state.squads < count do state.squads[#state.squads + 1] = newSquad(#state.squads + 1, p) end
     for i = count + 1, #state.squads do state.squads[i] = nil end
     local t = now()
-    if state.focus then
+
+    -- If the squad that found an NPC is gone, release the global focus.
+    if state.focusNpc then
         local dead = false
-        pcall(function() dead = state.focus:isDead() end)
-        if dead then state.focus = nil end
-    end
-    for _, s in ipairs(state.squads) do
-        if not state.focus and s.target and instanceof(s.target, "IsoSurvivor") then
-            local dead = false
-            pcall(function() dead = s.target:isDead() end)
-            if not dead then state.focus = s.target end
+        pcall(function() dead = state.focusNpc:isDead() end)
+        local focusAlive = false
+        for _, s in ipairs(state.squads) do
+            if s.id == state.focusSquad and alive(s.id) > 0 then focusAlive = true end
+        end
+        if dead or not focusAlive then
+            state.focusNpc = nil
+            state.focusSquad = nil
         end
     end
+
+    local nearHouses = nearbyInfected(state, p, S.infectRadius())
+    if nearHouses >= S.housesToInfect() then state.attack = true end
+    if state.attack and p:isDead() then state.attack = false end
+
     for _, s in ipairs(state.squads) do
         local living = alive(s.id)
         if living == 0 and s.spawned > 0 then
@@ -188,15 +234,47 @@ local function tick()
                 s.x, s.y = edgePoint(p)
                 s.size = 1
                 s.spawned = 0
-                s.state = "regroup"
+                s.mode = 'roam'
                 s.cooldown = t + 15000
-            else
-                s.state = "regroup"
+                s.roamX, s.roamY, s.roamUntil = nil, nil, 0
             end
         end
-        s.targetX, s.targetY = p:getX(), p:getY()
-        targetFor(s, p, state.focus)
-        stepToward(s, s.targetX or p:getX(), s.targetY or p:getY())
+
+        -- Detection. Without a detection a squad only searches and infects.
+        local npc = nearestNpc(s)
+        if npc and not state.focusNpc then
+            state.focusNpc = npc
+            state.focusSquad = s.id
+            s.mode = 'npc'
+        end
+        if state.attack then
+            s.mode = 'player'
+        elseif state.focusNpc then
+            s.mode = 'npc'
+        elseif dist2(s, p) <= S.visionRadius() * S.visionRadius() then
+            s.mode = 'player'
+        elseif s.mode == 'player' and dist2(s, p) > (S.visionRadius() * 1.8) ^ 2 then
+            s.mode = 'roam'
+        end
+
+        if s.mode == 'npc' and state.focusNpc then
+            s.targetX, s.targetY = state.focusNpc:getX(), state.focusNpc:getY()
+            if s.id == state.focusSquad then
+                if not infect(state, s, s.targetX, s.targetY, 2) then
+                    infectNearby(state, s, 8, 2)
+                end
+            end
+        elseif s.mode == 'player' then
+            s.targetX, s.targetY = p:getX(), p:getY()
+        else
+            s.mode = 'roam'
+            chooseRoam(s, p)
+            s.targetX, s.targetY = s.roamX, s.roamY
+            infectNearby(state, s, 8, 1)
+        end
+
+        stepToward(s, s.targetX, s.targetY)
+
         if t >= s.cooldown then
             s.size = math.min(S.maxSize(), (s.size or 1) + 1)
             local wanted = math.min(S.maxSize(), s.size)
@@ -204,12 +282,7 @@ local function tick()
             spawnAt(s.x, s.y, countSpawn, s.id)
             s.spawned = s.spawned + countSpawn
             s.cooldown = t + S.interval() * 1000
-            if S.infectHouses() then
-                local square = getCell():getGridSquare(math.floor(s.x), math.floor(s.y), s.z or 0)
-                local building = nil
-                if square then pcall(function() building = square:getBuilding() end) end
-                if building then spawnAt(s.x, s.y, 2, s.id) end
-            end
+            if S.infectHouses() then infectNearby(state, s, 8, 1) end
         end
     end
     p:getModData()[KEY] = state
@@ -222,8 +295,7 @@ local function install()
         if p then
             local md = p:getModData()
             local s = md[KEY]
-            -- Old squads are intentionally not trusted after a reload.
-            if not s or not s.squads then md[KEY] = { squads = {} } end
+            if not s or not s.squads then md[KEY] = { squads = {}, infected = {}, attack = false } end
         end
         print("[PZHordeDirector] loaded")
     end)
