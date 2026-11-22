@@ -1,0 +1,21 @@
+{
+  "UI_PZHordeDirector_Title": "PZ Horde Director",
+  "UI_PZHordeDirector_Enabled": "Enable roaming hordes",
+  "UI_PZHordeDirector_HordeCount": "Number of hordes",
+  "UI_PZHordeDirector_MaxSize": "Maximum zombies per squad",
+  "UI_PZHordeDirector_Interval": "Spawn interval, seconds",
+  "UI_PZHordeDirector_Radius": "Spawn radius",
+  "UI_PZHordeDirector_VisionRadius": "Vision radius",
+  "UI_PZHordeDirector_RoamRadius": "Roam radius",
+  "UI_PZHordeDirector_InfectRadius": "House search radius",
+  "UI_PZHordeDirector_HousesToInfect": "Houses to infect near player",
+  "UI_PZHordeDirector_TargetPlayers": "Hunt players",
+  "UI_PZHordeDirector_TargetNPCs": "Hunt NPCs",
+  "UI_PZHordeDirector_InfectHouses": "Infect entered houses",
+  "UI_PZHordeDirector_ClimbFences": "Zombies cross fences",
+  "UI_PZHordeDirector_ClimbRopes": "Zombies use ropes",
+  "UI_PZHordeDirector_Crawl": "Some zombies crawl",
+  "UI_PZHordeDirector_CrawlerPercent": "Crawler chance, %",
+  "UI_PZHordeDirector_Pathfinding": "Use road pathfinding",
+  "UI_PZHordeDirector_EdgeReset": "Respawn at map edge after wipe"
+}

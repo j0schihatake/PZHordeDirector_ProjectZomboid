@@ -1,0 +1,21 @@
+{
+  "UI_PZHordeDirector_Title": "PZ Horde Director — орды",
+  "UI_PZHordeDirector_Enabled": "Включить блуждающие орды",
+  "UI_PZHordeDirector_HordeCount": "Количество орд",
+  "UI_PZHordeDirector_MaxSize": "Максимум зомби в отряде",
+  "UI_PZHordeDirector_Interval": "Интервал спавна, сек",
+  "UI_PZHordeDirector_Radius": "Радиус спавна",
+  "UI_PZHordeDirector_VisionRadius": "Радиус обнаружения",
+  "UI_PZHordeDirector_RoamRadius": "Радиус блуждания",
+  "UI_PZHordeDirector_InfectRadius": "Радиус поиска домов",
+  "UI_PZHordeDirector_HousesToInfect": "Домов заразить рядом с игроком",
+  "UI_PZHordeDirector_TargetPlayers": "Охотиться на игроков",
+  "UI_PZHordeDirector_TargetNPCs": "Охотиться на NPC",
+  "UI_PZHordeDirector_InfectHouses": "Заражать дома",
+  "UI_PZHordeDirector_ClimbFences": "Зомби лезут через заборы",
+  "UI_PZHordeDirector_ClimbRopes": "Зомби используют верёвки",
+  "UI_PZHordeDirector_Crawl": "Часть зомби ползает",
+  "UI_PZHordeDirector_CrawlerPercent": "Шанс ползуна, %",
+  "UI_PZHordeDirector_Pathfinding": "Поиск пути по дорогам",
+  "UI_PZHordeDirector_EdgeReset": "Возрождение у края карты"
+}

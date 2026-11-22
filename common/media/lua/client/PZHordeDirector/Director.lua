@@ -70,7 +70,7 @@ local function alive(group)
         local z = list:get(i)
         if z and not z:isDead() and z:getModData().hordeGroup == group then
             n = n + 1
-            if S.crawl() and rnd(100) < 12 then pcall(function() z:setCrawler(true) end) end
+            if S.crawl() and rnd(100) < S.crawlerPercent() then pcall(function() z:setCrawler(true) end) end
             if S.climbFences() then pcall(function() z:setCanWalk(true) end) end
         end
     end
@@ -92,6 +92,69 @@ local function roadAt(x, y, z)
         or string.find(name, 'blends_street', 1, true) ~= nil
 end
 
+
+local function roadPathStep(s, tx, ty)
+    if not S.pathfinding() then return nil end
+    local z = math.floor(s.z or 0)
+    local sx, sy = math.floor(s.x), math.floor(s.y)
+    if not roadAt(sx, sy, z) then return nil end
+    -- If the target is off-road, aim for the closest road tile around it.
+    local gx, gy = math.floor(tx), math.floor(ty)
+    if not roadAt(gx, gy, z) then
+        local found = false
+        for r = 1, 3 do
+            for ox = -r, r do
+                for oy = -r, r do
+                    if not found and roadAt(gx + ox, gy + oy, z) then
+                        gx, gy, found = gx + ox, gy + oy, true
+                    end
+                end
+            end
+            if found then break end
+        end
+        if not found then return nil end
+    end
+    local startKey = sx .. ':' .. sy
+    local goalKey = gx .. ':' .. gy
+    local open = { startKey }
+    local inOpen = { [startKey] = true }
+    local came, gScore, fScore = {}, { [startKey] = 0 }, { [startKey] = math.abs(sx-gx)+math.abs(sy-gy) }
+    local nodes = 0
+    while #open > 0 and nodes < 300 do
+        nodes = nodes + 1
+        local best, bestF = 1, nil
+        for i, key in ipairs(open) do
+            local fv = fScore[key] or 1e9
+            if not bestF or fv < bestF then best, bestF = i, fv end
+        end
+        local current = table.remove(open, best); inOpen[current] = nil
+        if current == goalKey then
+            local step = current
+            while came[step] and came[step] ~= startKey do step = came[step] end
+            local nx, ny = step:match('^(-?%d+):(-?%d+)$')
+            return tonumber(nx), tonumber(ny)
+        end
+        local cx, cy = current:match('^(-?%d+):(-?%d+)$'); cx, cy = tonumber(cx), tonumber(cy)
+        for ox = -1, 1 do
+            for oy = -1, 1 do
+                if ox ~= 0 or oy ~= 0 then
+                    local nx, ny = cx + ox, cy + oy
+                    if roadAt(nx, ny, z) then
+                        local key = nx .. ':' .. ny
+                        local tentative = (gScore[current] or 1e9) + ((ox == 0 or oy == 0) and 1 or 1.414)
+                        if tentative < (gScore[key] or 1e9) then
+                            came[key] = current; gScore[key] = tentative
+                            fScore[key] = tentative + math.abs(nx-gx) + math.abs(ny-gy)
+                            if not inOpen[key] then open[#open+1] = key; inOpen[key] = true end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
 local function stepToward(s, tx, ty)
     if not tx or not ty then return end
     for _ = 1, 2 do
@@ -99,6 +162,10 @@ local function stepToward(s, tx, ty)
         local distance = math.sqrt(dx * dx + dy * dy)
         if distance <= 1 then return end
         local nx, ny = s.x + dx / distance, s.y + dy / distance
+        local ax, ay = roadPathStep(s, tx, ty)
+        if ax and ay then
+            s.x, s.y = ax, ay
+        else
         local bestX, bestY, bestD = nil, nil, nil
         for ox = -1, 1 do
             for oy = -1, 1 do
@@ -113,6 +180,7 @@ local function stepToward(s, tx, ty)
             end
         end
         if bestX then s.x, s.y = bestX, bestY else s.x, s.y = nx, ny end
+        end
     end
 end
 
