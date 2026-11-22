@@ -230,6 +230,11 @@ end
 local function infect(state, s, x, y, count)
     local building = buildingAt(x, y, s.z)
     if not building then return false end
+    -- Require a real room/interior, not just an outdoor building footprint.
+    local square = getCell():getGridSquare(math.floor(x), math.floor(y), math.floor(s.z or 0))
+    local room = nil
+    if square then pcall(function() room = square:getRoom() end) end
+    if not room then return false end
     local key = buildingKey(building, x, y)
     local first = not state.infected[key]
     state.infected[key] = { x = x, y = y }
