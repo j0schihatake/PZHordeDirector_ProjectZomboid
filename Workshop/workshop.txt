@@ -1,4 +1,5 @@
 version=1
+id=3844083075
 title=PZ Horde Director
 description=Roaming horde squads that hunt players and NPCs, enter houses and seed zombies inside, then move on.
 description=When one squad finds an NPC, the other squads focus the same target while its zombies remain alive.
