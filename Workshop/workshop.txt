@@ -1,0 +1,9 @@
+version=1
+title=PZ Horde Director
+description=Roaming horde squads that hunt players and NPCs, enter houses and seed zombies inside, then move on.
+description=When one squad finds an NPC, the other squads focus the same target while its zombies remain alive.
+description=A wiped squad respawns at the map edge with one zombie and grows back to the configured maximum.
+description=Mod Options: number of hordes, maximum size, spawn interval, radius, player/NPC targeting, house infection, fence/rope/crawl flags and edge reset.
+description=B42.22. Lightweight virtual squads use vanilla zombie swarms; no custom engine pathfinder.
+tags=Build 42
+visibility=public

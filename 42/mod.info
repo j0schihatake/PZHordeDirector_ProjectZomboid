@@ -1,0 +1,6 @@
+name=PZ Horde Director
+id=PZHordeDirector
+modversion=0.1.0
+versionMin=42.21
+versionMax=42.22
+description=Roaming horde squads that infect houses, search for players/NPCs and regroup at the map edge. Native B42 options.
