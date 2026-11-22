@@ -191,17 +191,22 @@ end
 
 local function nearestNpc(s)
     if not S.targetNPCs() then return nil end
-    local survivors = getCell():getSurvivorList()
-    if not survivors then return nil end
+    local lists = {}
+    pcall(function() lists[#lists+1] = getCell():getSurvivorList() end)
+    pcall(function() lists[#lists+1] = getCell():getRemoteSurvivorList() end)
     local best, bestD = nil, nil
     local vision = S.visionRadius() * S.visionRadius()
-    for i = 0, survivors:size() - 1 do
-        local npc = survivors:get(i)
-        local dead = false
-        pcall(function() dead = npc:isDead() end)
-        if not dead then
-            local d = dist2(s, npc)
-            if d <= vision and (not bestD or d < bestD) then best, bestD = npc, d end
+    for _, survivors in ipairs(lists) do
+        if survivors then
+            for i = 0, survivors:size() - 1 do
+                local npc = survivors:get(i)
+                local dead = false
+                pcall(function() dead = npc:isDead() end)
+                if not dead then
+                    local d = dist2(s, npc)
+                    if d <= vision and (not bestD or d < bestD) then best, bestD = npc, d end
+                end
+            end
         end
     end
     return best
