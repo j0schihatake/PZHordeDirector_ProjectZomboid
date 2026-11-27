@@ -4,6 +4,7 @@ local S = require "PZHordeDirector/Settings"
 local KEY = "PZHordeDirector"
 local TICK_MS = 5000
 local lastTick = 0
+local lastState = 0
 
 local function now() return getTimestampMs() end
 local function rnd(n) return ZombRand(n) end
@@ -364,11 +365,23 @@ local function tick()
         end
     end
     p:getModData()[KEY] = state
+    if t - lastState >= 60000 then
+        lastState = t
+        local infected, focus, attack = 0, 'none', state.attack and 'yes' or 'no'
+        for _ in pairs(state.infected) do infected = infected + 1 end
+        if state.focusNpc then
+            local ok, x = pcall(function() return state.focusNpc:getX() end)
+            focus = ok and ('npc@' .. tostring(math.floor(x or 0))) or 'npc'
+        end
+        print('[PZHordeDirector][state] squads=' .. tostring(#state.squads)
+            .. ' infected=' .. tostring(infected) .. ' focus=' .. focus .. ' attack=' .. attack)
+    end
 end
 
 local function install()
     Events.OnGameStart.Add(function()
         lastTick = 0
+        lastState = 0
         local p = player()
         if p then
             local md = p:getModData()
