@@ -15,7 +15,7 @@
   "UI_PZHordeDirector_ClimbFences": "Зомби лезут через заборы",
   "UI_PZHordeDirector_ClimbRopes": "Зомби используют верёвки",
   "UI_PZHordeDirector_Crawl": "Часть зомби ползает",
-  "UI_PZHordeDirector_CrawlerPercent": "Шанс ползуна, %",
+  "UI_PZHordeDirector_CrawlerPercent": "Шанс ползуна, %%",
   "UI_PZHordeDirector_Pathfinding": "Поиск пути по дорогам",
   "UI_PZHordeDirector_EdgeReset": "Возрождение у края карты"
 }

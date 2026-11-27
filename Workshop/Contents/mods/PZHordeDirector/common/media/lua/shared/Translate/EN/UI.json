@@ -15,7 +15,7 @@
   "UI_PZHordeDirector_ClimbFences": "Zombies cross fences",
   "UI_PZHordeDirector_ClimbRopes": "Zombies use ropes",
   "UI_PZHordeDirector_Crawl": "Some zombies crawl",
-  "UI_PZHordeDirector_CrawlerPercent": "Crawler chance, %",
+  "UI_PZHordeDirector_CrawlerPercent": "Crawler chance, %%",
   "UI_PZHordeDirector_Pathfinding": "Use road pathfinding",
   "UI_PZHordeDirector_EdgeReset": "Respawn at map edge after wipe"
 }
