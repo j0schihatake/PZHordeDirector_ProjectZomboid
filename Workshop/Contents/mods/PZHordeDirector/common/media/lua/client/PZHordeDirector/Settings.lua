@@ -18,7 +18,7 @@ if ok and PZAPI and PZAPI.ModOptions then
         if not page:getOption(key) then page:addSlider(key, label, min, max, step, default, "") end
     end
     tick("enabled", tr("UI_PZHordeDirector_Enabled", "Enable roaming hordes"), true)
-    slider("hordeCount", tr("UI_PZHordeDirector_HordeCount", "Number of hordes"), 1, 8, 1, 3)
+    slider("hordeCount", tr("UI_PZHordeDirector_HordeCount", "Number of hordes"), 1, 32, 1, 8)
     slider("maxSize", tr("UI_PZHordeDirector_MaxSize", "Maximum zombies per squad"), 4, 64, 2, 16)
     slider("interval", tr("UI_PZHordeDirector_Interval", "Spawn interval"), 10, 300, 10, 45)
     slider("radius", tr("UI_PZHordeDirector_Radius", "Spawn radius"), 4, 30, 1, 14)

@@ -283,7 +283,7 @@ local function tick()
     if not p or p:isDead() then return end
     local state = store()
     if not state then return end
-    local count = math.max(1, math.min(8, S.squadCount()))
+    local count = math.max(1, math.min(32, S.squadCount()))
     while #state.squads < count do state.squads[#state.squads + 1] = newSquad(#state.squads + 1, p) end
     for i = count + 1, #state.squads do state.squads[i] = nil end
     local t = now()
